@@ -14,7 +14,7 @@ scipy==1.11.4
 
 tensorflow==2.8.0  
 
-keras==2.7.0 
+keras
 
 tqdm==4.66.1 
 

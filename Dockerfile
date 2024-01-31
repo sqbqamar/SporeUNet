@@ -34,7 +34,7 @@ RUN pip install keras==2.7.0
 RUN pip install h5py==3.10.0
 RUN pip install opencv-python==4.9.0.80 
 RUN pip install tqdm==4.66.1 
-RUN pip install scikit-image==0.22.0 
+RUN pip install scikit-image==0.21.0 
 RUN pip install scikit-learn==1.3.2
 
 

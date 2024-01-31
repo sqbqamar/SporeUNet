@@ -28,7 +28,7 @@ RUN pip install pandas>=1.1.4
 RUN pip install pyyaml>=5.3.1  
 RUN pip install seaborn>=0.11.0 
 RUN pip install requests>=2.23.0 
-RUN pip install scipy==1.11.1
+RUN pip install scipy==1.10.1
 RUN pip install tensorflow==2.7.0
 RUN pip install keras==2.7.0
 RUN pip install h5py==3.10.0

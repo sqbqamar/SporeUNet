@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install scipy==1.11.1
 RUN pip install tensorflow==2.7.0
 RUN pip install keras==2.7.0
+RUN pip install h5py==3.10.0
 
 
 

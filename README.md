@@ -1,8 +1,10 @@
 # SporeUNet
 
-## Run code with Command line promt
+## Run code with Command line
 Run the script by typing the following command:
+
 `python cmd_predictor.py path/to/input/image.jpg path/to/output/directory`
+
 Replace `path/to/input/image.jpg` with the path to the image you want to process and `path/to/output/directory` with the path to the directory where you want to save the output. 
 
 

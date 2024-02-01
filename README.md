@@ -7,9 +7,9 @@
 
 - Run the script by typing the following command:
 
---`python cmd_predictor.py path/to/input/image.jpg path/to/output/directory`
+`python cmd_predictor.py path/to/input/image.jpg path/to/output/directory`
 
--Replace `path/to/input/image.jpg` with the path to the image you want to process and `path/to/output/directory` with the path to the directory where you want to save the output. 
+Replace `path/to/input/image.jpg` with the path to the image you want to process and `path/to/output/directory` with the path to the directory where you want to save the output. 
 
 
 ## Run code with Binder

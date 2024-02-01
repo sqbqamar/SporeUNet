@@ -1,9 +1,9 @@
 # SporeUNet
 
 ## Run code with Command Prompt 
-- Open `cmd_predictor.py` and set the model architecture and weight paths. then save the file. 
+- Open `cmd_prediction.py` and set the model architecture and weight paths. then save the file. 
 
-- Using the command line, navigate to the directory where you saved `cmd_predictor.py`. 
+- Using the command line, navigate to the directory where you saved `cmd_prediction.py`. 
 
 - Run the script by typing the following command:
 

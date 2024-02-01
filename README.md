@@ -1,9 +1,14 @@
 # SporeUNet
 
+## Run code with Command line promt
+Run the script by typing the following command:
+`python cmd_predictor.py path/to/input/image.jpg path/to/output/directory`
+Replace `path/to/input/image.jpg` with the path to the image you want to process and `path/to/output/directory` with the path to the directory where you want to save the output. 
 
 
 ## Run code with Binder
-After clicking on launch button, Binder environment will automatically configure required libraries and packages. This may take a few moments to complete
+After clicking on launch button, Binder environment will automatically configure required libraries and packages. This may take a few moments to complete   
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sqbqamar/SporeUNet/master?labpath=prediction_file.ipynb)
 
 - Binder will open the `prediction_file.ipynb` notebook

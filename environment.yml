@@ -14,7 +14,7 @@ dependencies:
   - tensorflow-cpu
   - keras
   - h5py
-  - opencv-python
+  - opencv
   - tqdm
   - scikit-image
   - scikit-learn

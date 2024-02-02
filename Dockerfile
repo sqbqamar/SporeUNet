@@ -1,5 +1,5 @@
 FROM jupyter/base-notebook
-FROM python:3.8.16
+FROM python:3.9.18
 USER root
 RUN apt-get update -y
 RUN apt install libgl1 libgl1-mesa-glx libglib2.0-0 -y

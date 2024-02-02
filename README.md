@@ -29,3 +29,7 @@ After clicking on launch button, Binder environment will automatically configure
 - Notebook contains cell-by-cell code
 - Examine each cell's code and comments
 - Understand how model is run for predictions
+
+## Train SporeUNet with Custom Dataset
+Just open the `Training_model.ipynb` file on Google Colab or the local system and follow the instructions as written in the file.  
+[Open Training file in Google Colab] (https://colab.research.google.com/github/sqbqamar/SporeUNet/blob/main/Training_model.ipynb)

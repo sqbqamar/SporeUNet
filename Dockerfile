@@ -1,5 +1,4 @@
 FROM jupyter/base-notebook
-FROM python:3.9.18
 USER root
 RUN apt-get update -y
 RUN apt install libgl1 libgl1-mesa-glx libglib2.0-0 -y
@@ -22,20 +21,17 @@ COPY Image /home/jovyan/
 COPY model_architecture.h5 /home/jovyan/
 COPY spore_test_dec5.hdf5 /home/jovyan/
 #RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install matplotlib>=3.2.2  
-RUN pip install pillow>=7.1.2  
-RUN pip install pandas>=1.1.4 
-RUN pip install pyyaml>=5.3.1  
-RUN pip install seaborn>=0.11.0 
-RUN pip install requests>=2.23.0 
-RUN pip install scipy==1.10.1
-RUN pip install tensorflow==2.7.0
-RUN pip install keras==2.7.0
-RUN pip install h5py==3.10.0
-RUN pip install opencv-python==4.9.0.80 
-RUN pip install tqdm==4.66.1 
-RUN pip install scikit-image==0.21.0 
-RUN pip install scikit-learn==1.3.2
-
-
-
+RUN pip install matplotlib 
+RUN pip install pillow
+RUN pip install pandas
+RUN pip install pyyaml
+RUN pip install seaborn 
+RUN pip install requests 
+RUN pip install scipy
+RUN pip install tensorflow
+RUN pip install keras
+RUN pip install h5py
+RUN pip install opencv-python
+RUN pip install tqdm
+RUN pip install scikit-image
+RUN pip install scikit-learn

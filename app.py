@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb  1 13:05:32 2024
+Created on Thu Oct 12 13:20:26 2023
 
-@author: drsaq
+@author: SAQIBQ
 """
 
 from flask import Flask, render_template, Response, request, send_file
-import tensorflow as tf
+import tempfile
+import json
+import pandas as pd
 import os
-import random
+from ultralytics import YOLO
 import numpy as np
-import glob
-import pickle
-from tqdm import tqdm 
+from PIL import Image
 import cv2
-from keras.models import load_model
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
-import matplotlib.pyplot as plt
+import colorsys
+import random
 from datetime import datetime
 import shutil
 from flask import current_app
+from fil_finder import FilFinder2D
+import astropy.units as u
 
 #from segment import measure
 
@@ -28,116 +28,143 @@ from flask import current_app
 app = Flask(__name__)
 
 
-# Load the model architecture
-model = load_model("C:/Users/drsaq/OneDrive/Desktop/256_paches/model_architecture.h5")
-
-# Load the weights
-model.load_weights('C:/Users/drsaq/OneDrive/Desktop/256_paches/spore_test_dec5.hdf5')
-
-def divide_into_patches(image, patch_size):
-    height, width = image.shape[:2]
-    patches = []
-    
-    # Calculate the number of patches in each dimension
-    num_patches_x = (width + patch_size - 1) // patch_size
-    num_patches_y = (height + patch_size - 1) // patch_size
-    
-    for y in range(num_patches_y):
-        for x in range(num_patches_x):
-            # Calculate the coordinates for each patch
-            left = x * patch_size
-            upper = y * patch_size
-            right = min(left + patch_size, width)
-            lower = min(upper + patch_size, height)
-            
-            # Crop the patch from the original image
-            patch = image[upper:lower, left:right]
-            patches.append(patch)
-    
-    return patches
-
-def reconstruct_from_patches(patches, original_size, patch_size = 256):
-    height, width = original_size
-    num_patches_x = (width + patch_size - 1) // patch_size
-    num_patches_y = (height + patch_size - 1) // patch_size
-    
-    # Create an empty image with the original size
-    new_image = np.zeros((height, width), dtype=np.uint8)
-    
-    patch_index = 0
-    for y in range(num_patches_y):
-        for x in range(num_patches_x):
-            # Calculate the coordinates to paste each patch
-            left = x * patch_size
-            upper = y * patch_size
-            right = min(left + patch_size, width)
-            lower = min(upper + patch_size, height)
-            
-            
-            # Get the current patch
-            patch = patches[patch_index]
-            patch_height = lower - upper
-            patch_width = right - left
-            patch = patch[:patch_height, :patch_width]
-            
-            
-            # Paste the patch onto the new image
-            new_image[upper:lower, left:right] = patch
-            
-            patch_index += 1
-    
-    return new_image
-def segment(input_path):
-  #  parser = argparse.ArgumentParser(description="Image Prediction Tool")
-  #  parser.add_argument("input_image", help="Path to the input image")
-  #  parser.add_argument("output_dir", help="Directory to save the output images")
-   # args = parser.parse_args()
-
-    original_img = cv2.imread(input_path, 0)
-
-# Get the height, width, and number of color channels of the input image
-    height, width= original_img.shape
-
-    new_height = (height // 256) * 256 
-    new_width = (width // 256) * 256
-
-
-# Determine the desired image size based on the width of the input image
-    if 100 < width < 512:
-    
-
-    # Resize the input image
-        test_img_other = cv2.resize(original_img, (256, 256))
-    
-    # Extend the dimension to feed into network
-        t_img_other = np.expand_dims(test_img_other, axis=-1)
-        t_img_other = np.expand_dims(t_img_other, 0)
-
-    # Make a prediction
-        prediction_other = (model.predict(t_img_other)[0, :, :, 0] > 0.5).astype(np.uint8)
-
-
-    else:
-
-        large_image = cv2.resize(original_img, (new_width, new_height))
-        patch_size = 256
-        predicted_patches = []
-
-    # Divide the large image into patches
-        patches = divide_into_patches(large_image, patch_size)
-
-        for patch in patches:
-            patch = np.expand_dims(patch, axis=-1)
-            patch = np.expand_dims(patch, 0)
-            img = (model.predict(patch)[0,:,:,0] > 0.5).astype(np.uint8)
-            predicted_patches.append(img)
-
-        prediction_other = reconstruct_from_patches( predicted_patches, large_image.shape[:2], patch_size)
+def detect(model, img, imgsz):
+        # Get img shape
+   # height, width, channels = img.shape
+    results = model.predict(source=img.copy(), project="Result", name="pred", overlap_mask=False, imgsz=imgsz, save=True, iou=0.8, conf=0.6, save_txt=False)
+    result = results[0]
         
-    #prediction_img_path = os.path.join(args.output_dir, "prediction.jpg")
-    #prediction_plot_path = os.path.join(args.output_dir, "prediction_plt.jpg")
-    #cv2.imwrite(prediction_img_path, prediction_other)
-    return prediction_other
+    # Extract Masks, bounding boxes, class IDs, and scores from the result
+    segment = result.masks.cpu().data.numpy()
+    bboxes = np.array(result.boxes.xyxy.cpu(), dtype="int")
+    class_ids = np.array(result.boxes.cls.cpu(), dtype="int")
+    scores = np.array(result.boxes.conf.cpu(), dtype="float").round(2)
+    
+    # Return the detected bounding boxes, class IDs, segments, and scores
+    return bboxes, class_ids, segment, scores
+
+def draw_mask(img, pts, color, alpha=0.5):
+    h, w, _ = img.shape
+
+    overlay = img.copy()
+    output = img.copy()
+
+    pts_list = [np.array(pts, dtype=np.int32)]  # Convert the input `pts` to the correct format
+    cv2.fillPoly(overlay, pts_list, color)
+    output = cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0, output)
+    return output
+
+def random_colors(N, bright=True):
+    """
+    Generate random colors.
+    To get visually distinct colors, generate them in HSV space then
+    convert to RGB.
+    """
+    brightness = 255 if bright else 180
+    hsv = [(i / N + 1, 1, brightness) for i in range(N + 1)]
+    colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
+    random.shuffle(colors)
+    return colors 
+
+class_names = ['Fibre', 'Vessel']
+colors = random_colors(len(class_names))
+
+model = YOLO("C:/Users/drsaq/Downloads/best.pt")
+
+def measure(model, path):
+    img = cv2.imread(path)
+    height, width, channels = img.shape
+        
+    imgsz = None
+    if 500 < width < 2000:
+        imgsz = 1024
+    elif 2500 < width < 5000:
+        imgsz = 3000
+    elif 5000 < width < 9000:
+        imgsz = 6000
+    if imgsz is None:
+        imgsz = 2048  
+        
+    list2=[]
+    bboxes, classes, segmentations, scores = detect(model, img, imgsz)
+    #bboxes, classes, segmentations, scores, area = detect(model, img, imgsz)
+    for i, (bbox, class_id, seg, score) in enumerate(zip(bboxes, classes, segmentations, scores)):
+    # print("bbox:", bbox, "class id:", class_id, "seg:", seg, "score:", score)
+        color = colors[i]
+        (x, y, x2, y2) = bbox 
+        h, w = seg.shape
+        mask_3channel = cv2.merge((seg, seg, seg))
+        # Get the size of the original image (height, width, channels)
+        h2, w2, c2 = img.shape
+        # Resize the mask to the same size as the image
+        x = cv2.resize(seg, (w2, h2)).astype('uint8')
+        # Find contours in the mask
+        d = cv2.findContours(x, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        if d:    
+            cntsSorted = sorted(d, key=lambda x: cv2.contourArea(x) , reverse =  True)
+            
+        if d: 
+            largest_contour = cntsSorted[0] 
+        mask = cv2.resize(mask_3channel, (w2, h2)).astype(int)
+
+        ### Length Calculation 
+
+        # Create a blank image with the same dimensions as the mask, but with 3 channels (RGB)
+        drawing = np.zeros((mask.shape[0], mask.shape[1], 3))
+        # Draw the largest contour from the mask onto the drawing image and fill it with green color
+        cv2.drawContours(drawing, [cntsSorted[0]] , -1 , color = (0,255,0) , thickness = cv2.FILLED)
+        drawing = drawing.astype(np.uint8)
+        drawing = cv2.cvtColor(drawing, cv2.COLOR_BGR2GRAY)
+        # Apply the Zhang-Suen thinning algorithm to the grayscale drawing to obtain a skeleton
+        thinned = cv2.ximgproc.thinning(drawing, thinningType = cv2.ximgproc.THINNING_ZHANGSUEN)
+        
+        skeleton = thinned
+        
+        # Initialize an instance of the FilFinder2D class with the skeleton, a distance parameter, and the skeleton as the mask
+        fil = FilFinder2D(skeleton, distance=250 * u.pc, mask=skeleton)
+        # Preprocess the image or skeleton by flattening the intensity values
+        fil.preprocess_image(flatten_percent=85)
+        fil.create_mask(border_masking=True, verbose=False,
+        use_existing_mask=True)
+        fil.medskel(verbose=False)
+        fil.analyze_skeletons(branch_thresh=40* u.pix, skel_thresh=10 * u.pix, prune_criteria='length')
+        # Assign the longest path or skeleton from the FilFinder2D instance to the 'mask' variable
+        mask = fil.skeleton_longpath
+        Length = np.sum(mask)
+
+        #print(f' Object Length is: {length:.2f}')
+        
+        ### Width Calculation 
+
+        # Compute the distance transform
+        dist_transform = cv2.distanceTransform(drawing, cv2.DIST_L2, 5)
+
+        # Find the maximum value in the distance transform
+        max_dist = np.max(dist_transform)
+
+        # The maximum value corresponds to the thickness of the thickest part of the fiber
+        fiber_thickness = max_dist * 2
+        Width = round(max_dist * 2, 2)
+
+        #print(f"Object Width is: {fiber_thickness:.2f} pixels")
+        
+        Area = cv2.contourArea(cntsSorted[0])
+        list1 = class_names[class_id], Length, Width, Area
+        list2.append(list1)
+        
+        cnt = cntsSorted[0].reshape(-1, 2)
+
+        img = draw_mask(img, [cnt], color)
+    
+    #cv2.drawContours(img, [box1], 0, (0, 0, 255), 2)
+        #img = draw_mask(img, [seg], colors[class_id])
+    #cv2.rectangle(img, (a, b), (c, d), (255, 0, 0), 2)
+        #cv2.drawContours(img,[box1],0,(255,0,0),2)
+    df = pd.DataFrame(list2)
+    df1 = df.rename(columns={0: 'Class Name',1: 'Length', 2: 'Width', 3: 'Area'})
+   # df1.to_excel("static/xls_file/data.xlsx")
+    return img, df1
+
 
 def find_most_recent_folder(directory):
     folders = [os.path.join(directory, d) for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
@@ -171,9 +198,12 @@ def find_most_recent_image_in_folder(folder):
 
     return recent_image
 
-image_extensions = ('.jpg', '.jpeg', '.png', '.tiff', '.tif')
+
+
+image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
 BASE_PATH = os.getcwd()
 UPLOAD_PATH = os.path.join(BASE_PATH, 'static/upload')
+
 
 @app.route('/', methods=['GET', 'POST'])
 def application():
@@ -200,29 +230,29 @@ def application():
                         except OSError:
                             pass
             
-        img = segment(path_save)
-       # img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        plt.figure(figsize=(6, 6))
-        #plt.title('Prediction of Test Image')
-        plt.imshow(img, cmap='gray')
-        plt.axis('off')  # Turn off axis labels
-        plt.savefig('static/Result/output.jpg', dpi=500, bbox_inches='tight')
-
-       # cv2.imwrite('static/Result/output.jpg', img)
+        img, df1 = measure(model, path_save)
         directory_path = 'static/Result' # Replace with the actual directory path
-        #recent_folder = find_most_recent_folder(directory_path)
-        image_path = find_most_recent_image_in_folder(directory_path)
+        recent_folder = find_most_recent_folder(directory_path)
+        image_path = find_most_recent_image_in_folder(recent_folder)
        # image1_path = 'static/prediction/image0.jpg'
        # image1_name = os.path.basename(image_path)
+        
+       # print(text_roi + '\n' + text_thresh)
+        xls_filename= image_base_name + "_summary.xlsx"
+        df1.to_excel(os.path.join(current_app.static_folder, "xls_file", xls_filename))
+        static_folder = os.path.join(current_app.static_folder, "xls_file")
+        for f in os.listdir(static_folder):
+            if f.endswith(".xlsx") and f != xls_filename:
+                os.remove(os.path.join(static_folder, f))
+        #df1.to_excel("static/xls_file/" + xls_filename)
+        #xls_filename = 'static/xls_file/data.xlsx'
 
-        return render_template('index.html', upload = True, upload_image = filename, image1 = image_path)
+        return render_template('index.html', upload = True, upload_image = filename, image1 = image_path, xls_filename=xls_filename)
 
     return render_template('index.html', upload = False)
+
 
 if __name__ == "__main__":
     #app.run()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
-    
-    

@@ -1,11 +1,11 @@
 # SporeUNet
 ## Interactive Application using Flask API
 
-You can deploy Flask based API in an interactive way using the following command.
+We make interactive API using the following command.
 
 `python app.py`
 
-Open the application in any browser 0.0.0.0:5000 and upload your image. Application will return the labeled image.
+Open the application in any browser [0.0.0.0:5000](http://127.0.0.1:5000) and upload your image. Application will return the labeled image.
 
 ## Run code with Command Prompt 
 - Open `cmd_prediction.py` and set the model architecture and weight paths. then save the file. 

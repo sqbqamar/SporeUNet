@@ -1,0 +1,15 @@
+name: spore
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - tensorflow==2.15.0
+      - opencv-contrib-python
+      - scikit-learn
+      - tifffile
+      - matplotlib
+      - tqdm
+      - Flask
+

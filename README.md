@@ -3,6 +3,7 @@
 Use the below command to create a conda environment and install the necessary libraries
 
 `conda env create -f spore_env.yml`
+
 `conda activate spore`
 
 
